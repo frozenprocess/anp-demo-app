@@ -41,10 +41,12 @@
 </body>
 <script>
     $( document ).ready(function() {
+
         $("button").on("click", function(){
             $("button").attr("disabled","disabled");
             crawl();
         } );
+
         function crawl() {
             $("#checker-internet").html('<i>Attempting ...</i>.');
             var jqxhr = $.get( "/crawler", function(data) {
@@ -98,7 +100,7 @@
                     console.log(data.debug);
                 }
             });
-        };
+
         $("#checker-dns-out").html('<i>Attempting ...</i>.');
             var jqxhr = $.get( "/dns-out", function(data) {
             
@@ -124,6 +126,7 @@
                     console.log(data.debug);
                 }
             });
+
             $("#checker-kapi").html('<i>Attempting ...</i>.');
             var jqxhr = $.get( "/kapi", function(data) {
             
@@ -149,6 +152,8 @@
                     console.log(data.debug);
                 }
             });
+
+        };
         crawl();
     });
 </script>
