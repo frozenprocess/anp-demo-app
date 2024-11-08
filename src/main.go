@@ -43,7 +43,7 @@ func checkDNS(domain string, host string, port string) bool {
 		resolver = &net.Resolver{
 			PreferGo: true,
 			Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-				d := net.Dialer{Timeout: time.Second}
+				d := net.Dialer{Timeout: time.Second * 30}
 				return d.DialContext(ctx, network, dnsServer)
 			},
 		}
