@@ -1,0 +1,20 @@
+ARG KERNEL_VERSION
+
+FROM golang:1.23-nanoserver AS build
+WORKDIR /src
+
+COPY src/* /src/
+ENV CGO_ENABLED=0
+RUN go build -o ./bin/ main.go
+COPY /src/ /src/bin/
+
+FROM mcr.microsoft.com/windows/nanoserver:$KERNEL_VERSION
+WORKDIR /app
+COPY --from=build /src/bin .
+
+ENV PORT=80
+ENV GIN_MODE=release
+
+EXPOSE 80
+
+ENTRYPOINT ["main.exe"]

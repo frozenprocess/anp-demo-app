@@ -1,0 +1,17 @@
+FROM golang:1.20-bullseye AS build
+WORKDIR /src
+
+COPY src /src
+RUN CGO_ENABLED=0 go build -o ./bin/  main.go
+COPY /src/ /src/bin/
+
+FROM ubuntu:latest
+WORKDIR /app
+COPY --from=build /src/bin .
+
+ENV PORT=80
+ENV GIN_MODE=release
+
+EXPOSE 80
+
+ENTRYPOINT ["./main"]
