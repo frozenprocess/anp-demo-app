@@ -16,51 +16,47 @@ import (
 )
 
 type HttpResponse struct {
-	Status int
-	Os     string
-	Debug  error
+	Status int         `json:"status"`
+	Os     string      `json:"os"`
+	Debug  interface{} `json:"debug,omitempty"`
 }
 
+// checkPort tries to connect to the specified host and port to see if it's open
 func checkPort(host string, port int) bool {
 	address := fmt.Sprintf("%s:%d", host, port)
 	timeout := time.Second * 2
 
-	// Attempt to establish a connection
 	conn, err := net.DialTimeout("tcp", address, timeout)
 	if err != nil {
-		return false // Port is closed or unreachable
+		return false
 	}
 	conn.Close()
-	return true // Port is open
+	return true
 }
 
+// checkDNS performs a DNS lookup using either the custom or default resolver
 func checkDNS(domain string, host string, port string) bool {
 	var resolver *net.Resolver
 
 	if host != "" && port != "" {
-		// Set up a custom resolver with the specified DNS server
 		dnsServer := fmt.Sprintf("%s:%s", host, port)
 		resolver = &net.Resolver{
 			PreferGo: true,
 			Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-				// Use the custom DNS server
 				d := net.Dialer{Timeout: time.Second}
 				return d.DialContext(ctx, network, dnsServer)
 			},
 		}
 	} else {
-		// Use the system's default resolver if no custom DNS server is provided
 		resolver = net.DefaultResolver
 	}
 
-	// Perform a DNS lookup using the chosen resolver
 	ips, err := resolver.LookupIP(context.Background(), "ip", domain)
 	if err != nil {
-		fmt.Printf("Failed to resolve DNS for %s: %v\n", domain, err)
+		log.Printf("Failed to resolve DNS for %s: %v\n", domain, err)
 		return false
 	}
 
-	// Print the IP addresses returned from the lookup and return success
 	for _, ip := range ips {
 		fmt.Println(ip)
 	}
@@ -73,46 +69,63 @@ func main() {
 	r.Static("assets/", "./assets")
 
 	r.GET("/kapi", func(c *gin.Context) {
-		// Define the host and port to check
 		host := os.Getenv("KUBERNETES_SERVICE_HOST")
-		port, err := strconv.Atoi(os.Getenv("KUBERNETES_SERVICE_PORT"))
+		portStr := os.Getenv("KUBERNETES_SERVICE_PORT")
+		port, err := strconv.Atoi(portStr)
 		if err != nil {
-			fmt.Printf("Failed to convert port: %v\n", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid port"})
+			c.JSON(http.StatusInternalServerError, HttpResponse{
+				Status: http.StatusInternalServerError,
+				Debug:  fmt.Sprintf("Failed to convert port: %v", err),
+			})
 			return
 		}
 
-		// Check if the port is open
+		status := "closed"
 		if checkPort(host, port) {
-			fmt.Printf("Port %d is open on %s\n", port, host)
-			c.JSON(http.StatusOK, gin.H{"status": "Port is open"})
-		} else {
-			fmt.Printf("Port %d is closed on %s\n", port, host)
-			c.JSON(http.StatusOK, gin.H{"status": "Port is closed"})
+			status = "open"
 		}
+
+		c.JSON(http.StatusOK, HttpResponse{
+			Status: http.StatusOK,
+			Debug:  fmt.Sprintf("Port %d is %s on %s", port, status, host),
+		})
 	})
 
 	r.GET("/dns-in", func(c *gin.Context) {
-		if checkDNS("google.com", "", "") {
-			fmt.Println("dns-in resolved")
-			c.JSON(http.StatusOK, gin.H{"status": "DNS resolved"})
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"status": "DNS resolution failed"})
+		success := checkDNS("google.com", "", "")
+		status := http.StatusOK
+		debug := "DNS resolved successfully"
+		if !success {
+			status = http.StatusInternalServerError
+			debug = "DNS resolution failed"
 		}
+
+		c.JSON(status, HttpResponse{
+			Status: status,
+			Debug:  debug,
+		})
 	})
 
 	r.GET("/dns-out", func(c *gin.Context) {
-		if checkDNS("google.com", "8.8.8.8", "53") {
-			fmt.Println("dns-out resolved")
-			c.JSON(http.StatusOK, gin.H{"status": "DNS resolved with external server"})
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"status": "DNS resolution failed"})
+		success := checkDNS("google.com", "8.8.8.8", "53")
+		status := http.StatusOK
+		debug := "DNS resolved with external server"
+		if !success {
+			status = http.StatusInternalServerError
+			debug = "DNS resolution failed with external server"
 		}
+
+		c.JSON(status, HttpResponse{
+			Status: status,
+			Debug:  debug,
+		})
 	})
 
 	r.GET("/ns-check", func(c *gin.Context) {
-		fmt.Println("ns-check")
-		c.JSON(http.StatusOK, gin.H{"status": "ns-check endpoint reached"})
+		c.JSON(http.StatusOK, HttpResponse{
+			Status: http.StatusOK,
+			Debug:  "ns-check endpoint reached",
+		})
 	})
 
 	r.GET("/crawler", func(c *gin.Context) {
@@ -140,19 +153,19 @@ func main() {
 
 		resp, err := client.Get(url)
 		if err != nil {
-			log.Println(err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch URL", "debug": err.Error()})
+			c.JSON(http.StatusInternalServerError, HttpResponse{
+				Status: http.StatusInternalServerError,
+				Debug:  fmt.Sprintf("Failed to fetch URL: %v", err),
+			})
 			return
 		}
 		defer resp.Body.Close()
 
-		response := HttpResponse{
+		c.JSON(resp.StatusCode, HttpResponse{
 			Status: resp.StatusCode,
 			Os:     runtime.GOOS,
-			Debug:  err,
-		}
-
-		c.JSON(resp.StatusCode, gin.H{"message": response})
+			Debug:  fmt.Sprintf("Fetched URL: %s", url),
+		})
 		client.CloseIdleConnections()
 	})
 

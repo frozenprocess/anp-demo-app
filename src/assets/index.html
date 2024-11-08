@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WinContainer</title>
+    <title>ANP Demo App</title>
     <script src="assets/jquery.js"></script>
     <link href="assets/bootstrap.min.css" rel="stylesheet"/>
     <script src="assets/bootstrap.bundle.min.js"></script>
@@ -14,15 +14,18 @@
     <nav class="navbar bg-body-tertiary">
         <div class="container-fluid">
           <a class="navbar-brand" href="#">
-            WinContainer
-            <span class="navbar-text"><a href="https://github.com/frozenprocess/wincontainer">Source code @ GitHub</a></span>
+            ANP Demo App
+            <span class="navbar-text"><a href="https://github.com/frozenprocess/anp-demo-app">Source code @ GitHub</a></span>
           </a>
         </div>
     </nav>
     <div class="container text-center">
         <div class="row">
           <div class="col">
-            <div id="checker"></div>
+            <div id="checker-internet"></div>
+            <div id="checker-dns-in"></div>
+            <div id="checker-dns-out"></div>
+            <div id="checker-kapi"></div>
           </div>
           <div class="col">
             <img src="assets/images/{{ .image }}"  style="width:15%;display: block;margin-left: auto;margin-right: auto;">
@@ -32,7 +35,7 @@
     </div>
     <footer class="border-top footer text-muted">
         <div class="container">
-            Made with <span style="color: #e25555;font-family: 'Roboto', sans-serif;">&hearts;</span> by <a href="https://www.tigera.io"><img height="40px" src="assets/images/Tigera_logo.png"></a>
+            Made by <a href="https://www.linkedin.com/in/rramezanpour/">frozenprocess using <span style="color: #e25555;font-family: 'Roboto', sans-serif;">&#127866;</span> and <span style="color: #e25555;font-family: 'Roboto', sans-serif;">&hearts;</span></a>.
         </div>
     </footer>
 </body>
@@ -43,32 +46,109 @@
             crawl();
         } );
         function crawl() {
-            $("#checker").html('<i>Attempting ...</i>.');
+            $("#checker-internet").html('<i>Attempting ...</i>.');
             var jqxhr = $.get( "/crawler", function(data) {
             
             }).done(function (data){
-                switch(data.message.Status) {
+                
+                switch(data.status) {
                     case 200:
-                        $("#checker").html('<i class="bi bi-arrow-up-circle-fill" style="color:green;"></i> Container can reach the Internet.');
+                        $("#checker-internet").html('<i class="bi bi-arrow-up-circle-fill" style="color:green;"></i> Container can reach the Internet.');
                         break;
                     case 499:
-                        $("#checker").html('<i class="bi bi-arrow-down-circle" style="color:red;"></i> Container cannot reach the Internet.');
+                        $("#checker-internet").html('<i class="bi bi-arrow-down-circle" style="color:red;"></i> Container cannot reach the Internet.');
                         break;
                     default:
-                        $("#checker").html('<i>Container problems, you know how it is. Please try again.</i>');
+                        $("#checker-internet").html('<i>Container problems, you know how it is. Please try again.</i>');
                 }
             })
             .fail(function() {
-                $("#checker").html('<i class="bi bi-arrow-down-circle" style="color:red;"></i> Container cannot reach the Internet.');
+                $("#checker-internet").html('<i class="bi bi-arrow-down-circle" style="color:red;"></i> Container cannot reach the Internet.');
             })
             .always(function (data){
                 $("button").removeAttr("disabled","disabled");
-                if (data.message.Debug != null) {
+                if (data.debug != null) {
 
-                    console.log(data.message.Debug);
+                    console.log(data.debug);
+                }
+            });
+
+            $("#checker-dns-in").html('<i>Attempting ...</i>.');
+            var jqxhr = $.get( "/dns-in", function(data) {
+            
+            }).done(function (data){
+                switch(data.status) {
+                    case 200:
+                        $("#checker-dns-in").html('<i class="bi bi-arrow-up-circle-fill" style="color:green;"></i> Container can reach coredns Pod.');
+                        break;
+                    case 499:
+                        $("#checker-dns-in").html('<i class="bi bi-arrow-down-circle" style="color:red;"></i> Container cannot reach coredns Pod.');
+                        break;
+                    default:
+                        $("#checker-dns-in").html('<i>Container problems, you know how it is. Please try again.</i>');
+                }
+            })
+            .fail(function() {
+                $("#checker-dns-in").html('<i class="bi bi-arrow-down-circle" style="color:red;"></i> Container cannot reach coredns Pod.');
+            })
+            .always(function (data){
+                $("button").removeAttr("disabled","disabled");
+                if (data.debug != null) {
+
+                    console.log(data.debug);
                 }
             });
         };
+        $("#checker-dns-out").html('<i>Attempting ...</i>.');
+            var jqxhr = $.get( "/dns-out", function(data) {
+            
+            }).done(function (data){
+                switch(data.status) {
+                    case 200:
+                        $("#checker-dns-out").html('<i class="bi bi-arrow-up-circle-fill" style="color:green;"></i> Container can reach external DNS servers.');
+                        break;
+                    case 499:
+                        $("#checker-dns-out").html('<i class="bi bi-arrow-down-circle" style="color:red;"></i> Container cannot reach external DNS servers.');
+                        break;
+                    default:
+                        $("#checker-dns-out").html('<i>Container problems, you know how it is. Please try again.</i>');
+                }
+            })
+            .fail(function() {
+                $("#checker-dns-out").html('<i class="bi bi-arrow-down-circle" style="color:red;"></i> Container cannot reach external DNS servers.');
+            })
+            .always(function (data){
+                $("button").removeAttr("disabled","disabled");
+                if (data.debug != null) {
+
+                    console.log(data.debug);
+                }
+            });
+            $("#checker-kapi").html('<i>Attempting ...</i>.');
+            var jqxhr = $.get( "/kapi", function(data) {
+            
+            }).done(function (data){
+                switch(data.status) {
+                    case 200:
+                        $("#checker-kapi").html('<i class="bi bi-arrow-up-circle-fill" style="color:green;"></i> Container can reach the Kubernetes API Server.');
+                        break;
+                    case 499:
+                        $("#checker-kapi").html('<i class="bi bi-arrow-down-circle" style="color:red;"></i> Container cannot reach the Kubernetes API Server.');
+                        break;
+                    default:
+                        $("#checker-kapi").html('<i>Container problems, you know how it is. Please try again.</i>');
+                }
+            })
+            .fail(function() {
+                $("#checker-kapi").html('<i class="bi bi-arrow-down-circle" style="color:red;"></i> Container cannot reach the Kubernetes API Server.');
+            })
+            .always(function (data){
+                $("button").removeAttr("disabled","disabled");
+                if (data.debug != null) {
+
+                    console.log(data.debug);
+                }
+            });
         crawl();
     });
 </script>
