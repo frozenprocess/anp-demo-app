@@ -30,7 +30,7 @@ jobs:
       with:
         platforms: linux/amd64,linux/arm64
         push: true
-        tags: ${{ vars.DOCKERHUB_USER }}/anp-demo-app:latest
+        tags: ${{ secrets.DOCKERHUB_USER }}/anp-demo-app:latest
 
   build-win1809:
     runs-on: windows-latest
